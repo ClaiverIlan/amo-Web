@@ -1,23 +1,36 @@
 "use client";
 
 import "./page.css";
+
 import { useRouter } from "next/navigation";
+
 import { useState, useEffect } from "react";
+
 import { useAuth } from "@/context/auth";
 
 import Input from "@/components/input";
+
 import VerticalLine from "@/components/verticalLine";
+
 import About from "@/components/about";
+
 import Title from "@/components/title";
+
 import SubTitle from "@/components/subLink";
+
 import DefaultButton from "@/components/DefaultButton";
 
 export default function Home() {
   const router = useRouter();
+
   const { Login, IsConnected } = useAuth();
+
   const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState("");
+
   const [checkingAuth, setCheckingAuth] = useState(true);
+
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   const [userLogin, setUserLogin] = useState({
@@ -45,7 +58,10 @@ export default function Home() {
           setTimeout(() => reject(new Error("Timeout")), 5000)
         );
 
-        const isConnected = await Promise.race([IsConnected(), timeoutPromise]);
+        const isConnected = await Promise.race([
+          IsConnected(),
+          timeoutPromise,
+        ]);
 
         console.log("📊 Status de conexão:", isConnected);
 
@@ -54,18 +70,26 @@ export default function Home() {
           console.log(
             "✅ Usuário logado, redirecionando para SelectDiscipline"
           );
+
           router.replace("/SelectDiscipline");
+
           return;
         } else if (isConnected === null) {
           // Usuário está logado mas com perfil incompleto
           console.log(
             "⚠️ Perfil incompleto, redirecionando para CompleteRegister"
           );
-          router.replace("/CompleteRegister");
+
+          router.replace("/ProfilePicture");
+
           return;
         }
-        // Se isConnected === false, usuário não está logado, continua na página de login
-        console.log("❌ Usuário não logado, permanecendo na tela de login");
+
+        // Se isConnected === false, usuário não está logado,
+        // continua na página de login
+        console.log(
+          "❌ Usuário não logado, permanecendo na tela de login"
+        );
       } catch (error) {
         console.error("❌ Erro ao verificar autenticação:", error);
       } finally {
@@ -75,7 +99,7 @@ export default function Home() {
     };
 
     checkUserAuth();
-  }, [router, hasCheckedAuth]);
+  }, [router, hasCheckedAuth, IsConnected]);
 
   const handleRegisterClick = () => {
     console.log("Navegando para a página de registro...");
@@ -133,11 +157,14 @@ export default function Home() {
 
       if (result?.erro) {
         setError(result.erro);
+
         console.error("Erro no login:", result.erro);
 
-        // Se for erro de dados inválidos (400) ou credenciais incorretas (401), marca os inputs como erro
+        // Se for erro de dados inválidos (400) ou credenciais incorretas (401),
+        // marca os inputs como erro
         if (
-          result.erro === "Dados inválidos. Verifique o email e senha." ||
+          result.erro ===
+            "Dados inválidos. Verifique o email e senha." ||
           result.erro ===
             "Email ou senha incorretos. Verifique suas credenciais e tente novamente."
         ) {
@@ -147,22 +174,26 @@ export default function Home() {
           });
         }
 
-        return; // Para aqui se houver erro
+        return;
       }
 
       if (result && result.erro === "usuario incompleto!") {
         console.log(
           "✅ Login realizado! Redirecionando para completar cadastro..."
         );
-        router.push("/CompleteRegister");
+
+        router.push("/ProfilePicture");
+
         return;
       }
 
       // Se chegou até aqui, login foi bem-sucedido
       console.log("✅ Login realizado com sucesso!");
+
       router.push("/SelectDiscipline");
     } catch (err) {
       console.error("Erro durante o login:", err);
+
       setError("Erro ao fazer login. Tente novamente.");
     } finally {
       setLoading(false);
@@ -195,29 +226,45 @@ export default function Home() {
       <div className="page">
         <div className="left-area">
           <Title title="LOGIN" />
+
           <Input
             placeholder="EMAIL"
             value={userLogin.email}
-            onChange={(value) => handleInputChange("email", value)}
+            onChange={(value) =>
+              handleInputChange("email", value)
+            }
             type="email"
             error={inputErrors.email}
           />
+
           <Input
             placeholder="SENHA"
             value={userLogin.password}
-            onChange={(value) => handleInputChange("password", value)}
+            onChange={(value) =>
+              handleInputChange("password", value)
+            }
             type="password"
             error={inputErrors.password}
           />
+
           {error && (
-            <div style={{ color: "red", fontSize: "14px", margin: "10px 0" }}>
+            <div
+              style={{
+                color: "red",
+                fontSize: "14px",
+                margin: "10px 0",
+              }}
+            >
               {error}
             </div>
           )}
-          <SubTitle subtitle="ESQUECI MINHA SENHA" />{" "}
+
+          <SubTitle subtitle="ESQUECI MINHA SENHA" />
+
           <DefaultButton onClick={login} disabled={loading}>
             {loading ? "Entrando..." : "Entrar"}
           </DefaultButton>
+
           <SubTitle
             subtitle="NÃO POSSUO CADASTRO"
             onClick={handleRegisterClick}

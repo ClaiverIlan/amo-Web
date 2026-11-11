@@ -1,31 +1,96 @@
 "use client";
-import React, { use, useEffect, useState } from "react";
-import { FaTimes, FaThumbsUp, FaEllipsisV, FaArrowRight } from "react-icons/fa";
+
+import React, { useCallback, useEffect, useState } from "react";
+
+import { FaTimes, FaThumbsUp, FaArrowRight } from "react-icons/fa";
+
 import Image from "next/image";
+
 import Comments from "@/components/Comments";
+
 import styles from "./styles.module.css";
+
 import perfil from "../../../assets/perfil.png";
+
 import api from "@/service/api";
 
-export default function AnswerQuestions({ isOpen, onClose, question = null }) {
+export default function AnswerQuestions({
+  isOpen,
+  onClose,
+  question = null,
+}) {
   const [responses, setResponses] = useState({
     results: [],
     count: 0,
     next: null,
     previous: null,
   });
+
   const [myResponse, setMyResponse] = useState("");
+
   const [loading, setLoading] = useState(true);
+
   const [page, setPage] = useState(1);
+
+  const GetResponses = useCallback(
+    async (currentPage = 1) => {
+      if (!question?.id) return;
+
+      try {
+        setLoading(true);
+
+        const url = `/respostas/?duvida=${question.id}&page=${currentPage}`;
+
+        const response = await api.get(url);
+
+        let results = response.data.results;
+
+        // Ordenar por data mais recente primeiro
+        results.sort(
+          (a, b) => new Date(b.data) - new Date(a.data)
+        );
+
+        if (question.resposta_correta) {
+          const correctAnswerIndex = results.findIndex(
+            (item) => item.id === question.resposta_correta
+          );
+
+          if (correctAnswerIndex !== -1) {
+            const [correctAnswer] = results.splice(
+              correctAnswerIndex,
+              1
+            );
+
+            results.unshift(correctAnswer);
+          }
+        }
+
+        setResponses({
+          ...response.data,
+          results: results,
+        });
+
+        setPage(currentPage);
+
+        setLoading(false);
+      } catch (error) {
+        console.log("Erro ao buscar respostas:", error);
+
+        setLoading(false);
+      }
+    },
+    [question?.id, question?.resposta_correta]
+  );
 
   useEffect(() => {
     if (isOpen && question) {
-      GetResponses();
+      GetResponses(1);
     }
-  }, [isOpen, question]);
+  }, [isOpen, question, GetResponses]);
 
   const PostResponse = async () => {
     setLoading(true);
+
     // if (HasBadWords(myResponse)) {
     //   setLoading(false);
     //   return;
@@ -37,51 +102,14 @@ export default function AnswerQuestions({ isOpen, onClose, question = null }) {
         resposta: myResponse,
       });
 
-      GetResponses();
+      await GetResponses(1);
     } catch (error) {
       console.log(error);
     } finally {
       setLoading(false);
     }
+
     setMyResponse("");
-  };
-
-  const GetResponses = async (next = false, reset = false) => {
-    if (!question?.id) return;
-
-    try {
-      setLoading(true);
-
-      const currentPage = next && responses.next ? page + 1 : 1;
-      const url = `/respostas/?duvida=${question.id}&page=${currentPage}`;
-
-      const response = await api.get(url);
-
-      let results = response.data.results;
-
-      // Ordenar por data mais recente primeiro
-      results.sort((a, b) => new Date(b.data) - new Date(a.data));
-
-      if (question.resposta_correta) {
-        const correctAnswerIndex = results.findIndex(
-          (item) => item.id === question.resposta_correta
-        );
-        if (correctAnswerIndex !== -1) {
-          const [correctAnswer] = results.splice(correctAnswerIndex, 1);
-          results.unshift(correctAnswer);
-        }
-      }
-
-      setResponses({
-        ...response.data,
-        results: results,
-      });
-      setPage(currentPage);
-      setLoading(false);
-    } catch (error) {
-      console.log("Erro ao buscar respostas:", error);
-      setLoading(false);
-    }
   };
 
   if (!isOpen) return null;
@@ -92,6 +120,7 @@ export default function AnswerQuestions({ isOpen, onClose, question = null }) {
 
     try {
       const date = new Date(dateString);
+
       const months = [
         "janeiro",
         "fevereiro",
@@ -119,7 +148,10 @@ export default function AnswerQuestions({ isOpen, onClose, question = null }) {
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={styles.modalContent}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header do Modal */}
         <div className={styles.modalHeader}>
           <button
@@ -130,44 +162,55 @@ export default function AnswerQuestions({ isOpen, onClose, question = null }) {
             <FaTimes />
           </button>
         </div>
+
         {/* Cabeçalho da Pergunta */}
         <div className={styles.questionHeader}>
           <div className={styles.authorInfo}>
             {question?.autor?.perfil?.foto ? (
               <Image
                 src={question.autor.perfil.foto}
-                alt={question.autor.perfil.nome_exibicao || "Autor"}
+                alt={
+                  question.autor.perfil.nome_exibicao || "Autor"
+                }
                 width={50}
                 height={50}
                 className={styles.authorAvatar}
               />
             ) : (
-              <img
+              <Image
                 src={perfil}
+                width={50}
+                height={50}
                 className={styles.authorAvatar}
                 alt="Avatar padrão"
               />
             )}
+
             <div className={styles.authorDetails}>
               <h3 className={styles.authorName}>
                 {question?.autor?.perfil?.nome_exibicao || "Usuário"}
               </h3>
+
               <span className={styles.graduationIcon}>🎓</span>
             </div>
           </div>
         </div>
+
         {/* Título e Descrição da Pergunta */}
         <div className={styles.questionContent}>
           <h2 className={styles.questionTitle}>
             {question?.titulo || "Título da dúvida"}
           </h2>
+
           <span className={styles.questionDate}>
             {formatDate(question?.data)}
           </span>
+
           <p className={styles.questionDescription}>
             {question?.descricao || "Descrição da dúvida"}
           </p>
         </div>
+
         {/* Campo de Comentário */}
         <div className={styles.commentSection}>
           <form
@@ -182,6 +225,7 @@ export default function AnswerQuestions({ isOpen, onClose, question = null }) {
                 value={myResponse}
                 onChange={(e) => setMyResponse(e.target.value)}
               />
+
               <button
                 type="button"
                 onClick={(e) => {
@@ -192,7 +236,8 @@ export default function AnswerQuestions({ isOpen, onClose, question = null }) {
               >
                 <FaArrowRight size={16} />
               </button>
-            </div>{" "}
+            </div>
+
             <div className={styles.commentStats}>
               <span>{question?.votos || 0}</span>
               <FaThumbsUp className={styles.likeIcon} />
@@ -206,20 +251,36 @@ export default function AnswerQuestions({ isOpen, onClose, question = null }) {
             responses.results.map((response, index) => (
               <Comments
                 key={response.id || index}
-                author={response.autor?.perfil?.nome_exibicao || "Usuário"}
+                author={
+                  response.autor?.perfil?.nome_exibicao || "Usuário"
+                }
                 avatar={response.autor?.perfil?.foto || perfil}
-                isVerified={response.autor?.verificado || false}
+                isVerified={
+                  response.autor?.verificado || false
+                }
                 content={response.resposta || "Comentário"}
                 date={formatDate(response.data)}
                 likes={response.votos || 0}
                 isLiked={response.votou || false}
-                onLike={() => console.log("Curtir comentário:", response.id)}
-                onMenuClick={() => console.log("Menu comentário:", response.id)}
+                onLike={() =>
+                  console.log(
+                    "Curtir comentário:",
+                    response.id
+                  )
+                }
+                onMenuClick={() =>
+                  console.log(
+                    "Menu comentário:",
+                    response.id
+                  )
+                }
               />
             ))
           ) : (
             <div className={styles.noComments}>
-              <p>Nenhum comentário ainda. Seja o primeiro a comentar!</p>
+              <p>
+                Nenhum comentário ainda. Seja o primeiro a comentar!
+              </p>
             </div>
           )}
         </div>

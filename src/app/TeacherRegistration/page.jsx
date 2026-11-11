@@ -1,9 +1,13 @@
 import styles from "./page.module.css";
 
 import Input from "@/components/input";
+
 import VerticalLine from "@/components/verticalLine";
+
 import About from "@/components/about";
+
 import Title from "@/components/title";
+
 import DefaultButton from "@/components/DefaultButton";
 
 export default function TeacherRegistration() {
@@ -33,9 +37,12 @@ export default function TeacherRegistration() {
           </p>
 
           <Input placeholder="NOME" />
+
           <Input placeholder="SIAPE" />
 
-          <DefaultButton children="Enviar email" />
+          <DefaultButton>
+            Enviar email
+          </DefaultButton>
         </div>
       </div>
     </div>

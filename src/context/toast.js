@@ -1,23 +1,48 @@
 "use client";
-import React, { createContext, useContext, useState, useCallback } from "react";
+
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+} from "react";
+
 import Toast from "@/components/Toast";
 
 const ToastContext = createContext();
 
 export const useToast = () => {
   const context = useContext(ToastContext);
+
   if (!context) {
     throw new Error("useToast deve ser usado dentro de um ToastProvider");
   }
+
   return context;
 };
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
+  const removeToast = useCallback((id) => {
+    setToasts((prev) =>
+      prev.map((toast) =>
+        toast.id === id ? { ...toast, isRemoving: true } : toast
+      )
+    );
+
+    // Remove from state after animation
+    setTimeout(() => {
+      setToasts((prev) =>
+        prev.filter((toast) => toast.id !== id)
+      );
+    }, 300);
+  }, []);
+
   const addToast = useCallback(
     (title, message, type = "info", duration = 5000) => {
       const id = Date.now() + Math.random();
+
       const newToast = {
         id,
         title,
@@ -39,21 +64,8 @@ export const ToastProvider = ({ children }) => {
 
       return id;
     },
-    []
+    [removeToast]
   );
-
-  const removeToast = useCallback((id) => {
-    setToasts((prev) =>
-      prev.map((toast) =>
-        toast.id === id ? { ...toast, isRemoving: true } : toast
-      )
-    );
-
-    // Remove from state after animation
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((toast) => toast.id !== id));
-    }, 300);
-  }, []);
 
   const clearAllToasts = useCallback(() => {
     setToasts([]);

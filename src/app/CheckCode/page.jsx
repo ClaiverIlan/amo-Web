@@ -1,27 +1,47 @@
 "use client";
+
 import styles from "./page.module.css";
+
 import React, { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+
+import { useRouter } from "next/navigation";
+
 import Title from "@/components/title";
+
 import SubLink from "@/components/subLink";
+
 import DefaultButton from "@/components/DefaultButton";
+
 import { useAuth } from "@/context/auth";
+
 import api from "@/service/api";
 
 export default function CheckCode() {
   const [error, setError] = useState();
+
   const [loading, setLoading] = useState(false);
+
   const [code, setCode] = useState(["", "", "", "", "", ""]);
+
   const [timeToken, setTimeToken] = useState(60);
-  const refs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
+
+  const refs = [
+    useRef(),
+    useRef(),
+    useRef(),
+    useRef(),
+    useRef(),
+    useRef(),
+  ];
+
   const { Active, Register, user } = useAuth();
+
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     const timerId = setInterval(() => {
-      setTimeToken((prevTimeToken) =>
-        prevTimeToken > 0 ? prevTimeToken - 1 : 0
+      setTimeToken(
+        (prevTimeToken) => (prevTimeToken > 0 ? prevTimeToken - 1 : 0)
       );
     }, 1000);
 
@@ -38,7 +58,10 @@ export default function CheckCode() {
 
   const HandleChangeCode = (text, pos) => {
     let tempCode = code;
-    tempCode[pos] = typeof text === "string" ? text.toLowerCase() : text;
+
+    tempCode[pos] =
+      typeof text === "string" ? text.toLowerCase() : text;
+
     setCode(tempCode);
 
     if (text !== "" && pos < 5) {
@@ -58,6 +81,7 @@ export default function CheckCode() {
 
   const CheckinputCode = async () => {
     setLoading(true);
+
     const inputIsFilled = code.reduce((previousValue, currentValue) => {
       if (currentValue === "") return -1;
       return 1;
@@ -67,10 +91,12 @@ export default function CheckCode() {
       const activeToken = code.toString().replace(/,/g, "");
 
       await Active(activeToken);
+
       router.push("/ProfilePicture");
     } else {
       setError("O campo do código não pode estar vazio!");
     }
+
     setLoading(false);
   };
 
@@ -95,11 +121,13 @@ export default function CheckCode() {
         </div>
 
         <SubLink subtitle="Reenviar codigo" />
+
         <DefaultButton
-          children="Prosseguir"
           disabled={loading}
           onClick={CheckinputCode}
-        />
+        >
+          Prosseguir
+        </DefaultButton>
       </div>
     </div>
   );

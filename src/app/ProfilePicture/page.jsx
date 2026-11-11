@@ -1,26 +1,44 @@
 "use client";
+
 import styles from "./page.module.css";
+
 import Image from "next/image";
+
 import { useState, useEffect } from "react";
+
 import { useRouter } from "next/navigation";
 
 import Input from "@/components/input";
+
 import VerticalLine from "@/components/verticalLine";
+
 import Title from "@/components/title";
+
 import SubLink from "@/components/subLink";
+
 import DefaultButton from "@/components/DefaultButton";
+
 import Foto from "../../../assets/perfil.png";
+
 import { useAuth } from "@/context/auth";
+
 import api from "@/service/api";
+
 import { API_ENDPOINTS } from "@/constants/endpoints";
+
 import { GetLoginToken } from "@/util/StorageLogin";
 
 export default function ProfilePicture() {
   const router = useRouter();
+
   const [loading, setLoading] = useState(false);
+
   const [keyboardIsOpen, setKeyboardIsOpen] = useState(false);
+
   const [courses, setCourses] = useState([]);
+
   const [years, setYears] = useState([]);
+
   const [personalData, setPersonalData] = useState({
     name: "",
     nickName: "",
@@ -31,6 +49,7 @@ export default function ProfilePicture() {
       nome: "",
     },
   });
+
   const [inputErros, setInputErros] = useState({
     errosNickName: null,
     errosName: null,
@@ -44,10 +63,13 @@ export default function ProfilePicture() {
 
   useEffect(() => {
     const currentYear = new Date().getFullYear();
+
     let tempYears = [];
+
     for (let i = 2015; i <= currentYear; i++) {
       tempYears.push(i);
     }
+
     setYears(tempYears);
 
     async function GetCourses() {
@@ -57,6 +79,7 @@ export default function ProfilePicture() {
             Authorization: "Token " + (await GetLoginToken()),
           },
         });
+
         const listCourses = response.data.results;
 
         setCourses(listCourses);
@@ -64,11 +87,13 @@ export default function ProfilePicture() {
         console.log(error.response.data);
       }
     }
+
     GetCourses();
   }, []);
 
   const InputValidation = async () => {
     setLoading(true);
+
     let erros = {
       errosName: null,
       errosNickName: null,
@@ -81,6 +106,7 @@ export default function ProfilePicture() {
     if (personalData.name.trim().length < 3) {
       erros.errosName = "Nome inválido!";
     }
+
     if (
       !/^[0-9]+$/.test(personalData.registration.trim()) ||
       personalData.registration.length < 6 ||
@@ -88,17 +114,21 @@ export default function ProfilePicture() {
     ) {
       erros.errosRegistration = "Matrícula inválida!";
     }
+
     if (!personalData.nickName.trim()) {
       erros.errosNickName = "Nome de exibição inválido!";
     }
+
     if (!personalData.entryYear.trim()) {
       erros.errosEntryear = "Ano de entrada não pode está vazio!";
     }
+
     if (!personalData.course.id) {
       erros.errosCourse = "Curso não pode está vazio!";
     }
 
     setInputErros(erros);
+
     if (
       !erros.errosUser &&
       !erros.errosName &&
@@ -108,9 +138,12 @@ export default function ProfilePicture() {
       !erros.errosRegistration
     ) {
       const response = await CompleteRegister(personalData);
+
       console.log("Cadastro completo com sucesso!", response);
+
       if (response === personalData.nickName) {
         router.push("/RegistrationCompleted");
+
         console.log("Cadastro completo com sucesso!");
       } else {
         setInputErros({ ...erros, responseErros: response });
@@ -118,6 +151,7 @@ export default function ProfilePicture() {
     }
 
     setLoading(false);
+
     return null;
   };
 
@@ -133,30 +167,39 @@ export default function ProfilePicture() {
       <div className={styles.page}>
         <div className={styles.rightArea}>
           <Title title="ESTAMOS QUASE LA" />
+
           <Input
             placeholder="NOME DE USUARIO"
             value={personalData.nickName}
             onChange={(value) => handleInputChange("nickName", value)}
             error={inputErros.errosNickName}
           />
+
           <Input
             placeholder="NOME COMPLETO"
             value={personalData.name}
             onChange={(value) => handleInputChange("name", value)}
             error={inputErros.errosName}
           />
+
           <Input
             placeholder="MATRICULA"
             value={personalData.registration}
-            onChange={(value) => handleInputChange("registration", value)}
+            onChange={(value) =>
+              handleInputChange("registration", value)
+            }
             error={inputErros.errosRegistration}
           />
+
           <Input
             placeholder="ANO DE ENTRADA"
             value={personalData.entryYear}
-            onChange={(value) => handleInputChange("entryYear", value)}
+            onChange={(value) =>
+              handleInputChange("entryYear", value)
+            }
             error={inputErros.errosEntryear}
           />
+
           <Input
             placeholder="SELECIONAR O CURSO"
             items={courses}
@@ -164,11 +207,13 @@ export default function ProfilePicture() {
             onChange={(value) => {
               console.log("Curso selecionado:", value);
               console.log("Lista de cursos disponíveis:", courses);
-              // Encontra o curso selecionado pelo nome
+
               const selectedCourse = courses.find(
                 (course) => course.nome === value
               );
+
               console.log("Curso encontrado:", selectedCourse);
+
               if (selectedCourse) {
                 handleInputChange("course", selectedCourse);
               }
@@ -181,6 +226,7 @@ export default function ProfilePicture() {
 
         <div className={styles.leftArea}>
           <Title title="SELECIONE SUA FOTO DE PERFIL" />
+
           <Image
             className={styles.profileImage}
             src={Foto}
@@ -190,7 +236,9 @@ export default function ProfilePicture() {
 
           <SubLink subtitle="PULAR ETAPA" />
 
-          <DefaultButton children="Prosseguir" onClick={InputValidation} />
+          <DefaultButton onClick={InputValidation}>
+            Prosseguir
+          </DefaultButton>
         </div>
       </div>
     </div>

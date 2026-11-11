@@ -1,6 +1,8 @@
 "use client";
+
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+
 // Removido FaSearch e FaUserCircle daqui, pois serão passados como children para ForumHeader
 
 import Sidebar from "@/components/SideBar";
@@ -13,8 +15,8 @@ import { useAuth } from "@/context/auth";
 import { useSubject } from "@/context/subject";
 import { useToast } from "@/context/toast";
 import { GetLoginToken } from "@/util/StorageLogin";
-import ForumHeader from "@/components/ForumHeader"; // Importa o novo componente
-import { FaUserCircle } from "react-icons/fa"; // Mantido para o ícone de perfil, se necessário como fallback ou passado diretamente
+import ForumHeader from "@/components/ForumHeader";
+import { FaUserCircle } from "react-icons/fa";
 import styles from "./page.module.css";
 import perfil from "../../../assets/perfil.png";
 
@@ -25,21 +27,25 @@ export default function Forum() {
     mostLiked: false,
     text: "",
   });
+
   const [confirmDeleteQuest, setConfirmDelete] = useState({
     open: false,
     id: null,
   });
+
   const [reportQuestion, setReportQuestion] = useState({
     open: false,
     id: null,
     reason: "",
     description: "",
   });
+
   const [page, setPage] = useState(1);
   const [displayValue, setDisplayValue] = useState("");
   const [data, setData] = useState([]);
-  const [originalData, setOriginalData] = useState([]); // Dados originais sem filtro de pesquisa
+  const [originalData, setOriginalData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshQuestions, setRefreshQuestions] = useState(0);
 
   const { showSuccess, showError, showWarning } = useToast();
 
@@ -51,6 +57,7 @@ export default function Forum() {
 
     try {
       const date = new Date(dateString);
+
       const months = [
         "janeiro",
         "fevereiro",
@@ -76,46 +83,48 @@ export default function Forum() {
     }
   };
 
-  const GetQuestions = async (next) => {
-    try {
-      setLoading(true);
-      let url = `/duvidas/?page=${page}&disciplina_id=${subject.id}`;
+  useEffect(() => {
+    if (!isLoaded || !subject || !subject.id) return;
 
-      if (next && data.next) {
-        url = `/duvidas/?page=${
-          data.next ? data.next.substring(-1) : page + 1
-        }&disciplina_id=${subject.id}`;
-        setPage(page + 1);
-      }
+    const GetQuestions = async () => {
+      try {
+        setLoading(true);
 
-      if (filters.recent) {
-        url += "&ordering=-data";
-      } else if (filters.responded) {
-        url += "&respondida=true";
-      } else if (filters.mostLiked) {
-        url += "&ordering=-votos";
-      }
+        let url = `/duvidas/?page=${page}&disciplina_id=${subject.id}`;
 
-      const response = await api.get(url, {
-        headers: {
-          Authorization: "Token " + (await GetLoginToken()),
-        },
-      });
+        if (filters.recent) {
+          url += "&ordering=-data";
+        } else if (filters.responded) {
+          url += "&respondida=true";
+        } else if (filters.mostLiked) {
+          url += "&ordering=-votos";
+        }
 
-      if (next && data.next) {
-        const results = [...originalData.results, ...response.data.results];
-        const newData = { ...response.data, results: results };
-        setOriginalData(newData);
-        setData(newData);
-      } else {
+        const response = await api.get(url, {
+          headers: {
+            Authorization: "Token " + (await GetLoginToken()),
+          },
+        });
+
         setOriginalData(response.data);
         setData(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.log(error);
+        setLoading(false);
       }
-      setLoading(false);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+    };
+
+    GetQuestions();
+  }, [
+    filters.responded,
+    filters.mostLiked,
+    filters.recent,
+    subject,
+    isLoaded,
+    page,
+    refreshQuestions,
+  ]);
 
   const DeleteQuestion = async () => {
     try {
@@ -124,22 +133,26 @@ export default function Forum() {
           Authorization: "Token " + (await GetLoginToken()),
         },
       });
+
       setConfirmDelete({ open: false, id: null });
 
       // Remove a dúvida dos dados originais
       const updatedOriginalResults = originalData.results.filter(
         (item) => item.id !== confirmDeleteQuest.id
       );
+
       const newOriginalData = {
         ...originalData,
         results: updatedOriginalResults,
       };
+
       setOriginalData(newOriginalData);
 
       // Remove a dúvida dos dados filtrados
       const updatedFilteredResults = data.results.filter(
         (item) => item.id !== confirmDeleteQuest.id
       );
+
       setData({ ...data, results: updatedFilteredResults });
     } catch (error) {
       console.log(error.response);
@@ -159,11 +172,15 @@ export default function Forum() {
         disciplina: subject.id,
       };
 
-      await api.post(`/duvidas/${reportQuestion.id}/report-duvida/`, report, {
-        headers: {
-          Authorization: "Token " + (await GetLoginToken()),
-        },
-      });
+      await api.post(
+        `/duvidas/${reportQuestion.id}/report-duvida/`,
+        report,
+        {
+          headers: {
+            Authorization: "Token " + (await GetLoginToken()),
+          },
+        }
+      );
 
       setReportQuestion({ open: false, id: null });
 
@@ -180,12 +197,14 @@ export default function Forum() {
       if (item.id === id) {
         const votou = item.votou;
         const votos = item.votos;
+
         return {
           ...item,
           votos: votou ? votos - 1 : votos + 1,
           votou: !votou,
         };
       }
+
       return item;
     });
 
@@ -193,6 +212,7 @@ export default function Forum() {
       ...originalData,
       results: updatedOriginalResults,
     };
+
     setOriginalData(newOriginalData);
 
     // Atualiza os dados filtrados
@@ -200,12 +220,14 @@ export default function Forum() {
       if (item.id === id) {
         const votou = item.votou;
         const votos = item.votos;
+
         return {
           ...item,
           votos: votou ? votos - 1 : votos + 1,
           votou: !votou,
         };
       }
+
       return item;
     });
 
@@ -215,6 +237,7 @@ export default function Forum() {
   const PostLike = async (id) => {
     try {
       handleLikeButton(id);
+
       await api.post(
         `/duvidas/${id}/votar/`,
         {},
@@ -232,6 +255,7 @@ export default function Forum() {
   const DeleteLike = async (id) => {
     try {
       handleLikeButton(id);
+
       await api.delete(`/duvidas/${id}/votar/`, {
         headers: {
           Authorization: "Token " + (await GetLoginToken()),
@@ -241,16 +265,6 @@ export default function Forum() {
       console.log(error.response);
     }
   };
-
-  useEffect(() => {
-    if (isLoaded && subject && subject.id) {
-      if (filters.responded || filters.mostLiked || filters.recent) {
-        GetQuestions();
-      } else {
-        GetQuestions();
-      }
-    }
-  }, [filters.responded, filters.mostLiked, filters.recent, subject, isLoaded]);
 
   // UseEffect separado para filtrar localmente por texto de pesquisa
   useEffect(() => {
@@ -264,7 +278,9 @@ export default function Forum() {
       const filteredResults = originalData.results.filter(
         (post) =>
           post.titulo?.toLowerCase().includes(filters.text.toLowerCase()) ||
-          post.descricao?.toLowerCase().includes(filters.text.toLowerCase()) ||
+          post.descricao
+            ?.toLowerCase()
+            .includes(filters.text.toLowerCase()) ||
           post.autor?.perfil?.nome_exibicao
             ?.toLowerCase()
             .includes(filters.text.toLowerCase())
@@ -287,9 +303,10 @@ export default function Forum() {
 
   const handleCloseRegisterModal = (shouldRefresh = false) => {
     setIsRegisterModalOpen(false);
+
     if (shouldRefresh) {
       // Recarregar as dúvidas quando uma nova for criada
-      GetQuestions();
+      setRefreshQuestions((prev) => prev + 1);
     }
   };
 
@@ -311,7 +328,7 @@ export default function Forum() {
         recent: false,
         responded: false,
         mostLiked: false,
-        text: prev.text, // Mantém o texto de busca
+        text: prev.text,
       };
 
       // Ativa apenas o filtro selecionado (ou desativa se já estiver ativo)
@@ -341,6 +358,7 @@ export default function Forum() {
   return (
     <div className={styles.container}>
       <Sidebar />
+
       <div className={styles.mainContent}>
         <ForumHeader
           filters={filters}
@@ -348,12 +366,15 @@ export default function Forum() {
           searchValue={filters.text}
           onSearchChange={handleSearchChange}
         />{" "}
+
         <div className={styles.postsGrid}>
           {data.results && data.results.length > 0 ? (
             data.results.map((post, index) => (
               <Card
                 key={post.id || index}
-                author={post.autor.perfil.nome_exibicao || "Autor Desconhecido"}
+                author={
+                  post.autor.perfil.nome_exibicao || "Autor Desconhecido"
+                }
                 title={post.titulo || "Sem título"}
                 description={post.descricao || "Sem descrição"}
                 date={formatDate(post.data)}
@@ -379,16 +400,21 @@ export default function Forum() {
                 fontSize: "16px",
               }}
             >
-              {loading ? "Carregando posts..." : "Nenhuma dúvida encontrada"}
+              {loading
+                ? "Carregando posts..."
+                : "Nenhuma dúvida encontrada"}
             </div>
           )}
         </div>
+
         <FloatingButton onClick={handleOpenRegisterModal} />
+
         <RegisterDoubt
           isOpen={isRegisterModalOpen}
           onClose={handleCloseRegisterModal}
           title="CADASTRAR DÚVIDA"
         />
+
         <AnswerQuestions
           isOpen={isAnswerModalOpen}
           onClose={handleCloseAnswerModal}
